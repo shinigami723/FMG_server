@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sensor Data</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/3.1.3/socket.io.min.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+    table, th, td {
+      border: 1px solid black;
+    }
+    th, td {
+      padding: 8px;
+      text-align: left;
+    }
+    th {
+      background-color: #f2f2f2;
+    }
+  </style>
+</head>
+<body>
+  <h1>Real-Time Sensor Data</h1>
+  <div id="data">
+    <table id="sensor-table">
+      <thead>
+        <tr>
+          <th>Sensor Read Time</th>
+          <th>Data Send Time</th>
+          <th>Data Receive Time</th>
+          <th>ADC_0 (V)</th>
+          <th>Acceleration X (m/s²)</th>
+          <th>Acceleration Y (m/s²)</th>
+          <th>Acceleration Z (m/s²)</th>
+          <th>Rotation X (rad/s)</th>
+          <th>Rotation Y (rad/s)</th>
+          <th>Rotation Z (rad/s)</th>
+        </tr>
+      </thead>
+      <tbody id="sensor-data"></tbody>
+    </table>
+  </div>
+
+  <script>
+    const socket = io();
+
+    socket.on('sensor_update', function(data) {
+      const sensorDataTable = document.getElementById('sensor-data');
+      const row = document.createElement('tr');
+      
+      const readTimeCell = document.createElement('td');
+      readTimeCell.textContent = data.sensor_read_time;
+      row.appendChild(readTimeCell);
+
+      const sendTimeCell = document.createElement('td');
+      sendTimeCell.textContent = data.data_send_time;
+      row.appendChild(sendTimeCell);
+
+      const receiveTimeCell = document.createElement('td');
+      receiveTimeCell.textContent = data.data_receive_time;
+      row.appendChild(receiveTimeCell);
+
+      const adcCell = document.createElement('td');
+      adcCell.textContent = data.AIN0;
+      row.appendChild(adcCell);
+
+      const accXCell = document.createElement('td');
+      accXCell.textContent = data.Acceleration_x;
+      row.appendChild(accXCell);
+
+      const accYCell = document.createElement('td');
+      accYCell.textContent = data.Acceleration_y;
+      row.appendChild(accYCell);
+
+      const accZCell = document.createElement('td');
+      accZCell.textContent = data.Acceleration_z;
+      row.appendChild(accZCell);
+
+      const rotXCell = document.createElement('td');
+      rotXCell.textContent = data.Rotation_x;
+      row.appendChild(rotXCell);
+
+      const rotYCell = document.createElement('td');
+      rotYCell.textContent = data.Rotation_y;
+      row.appendChild(rotYCell);
+
+      const rotZCell = document.createElement('td');
+      rotZCell.textContent = data.Rotation_z;
+      row.appendChild(rotZCell);
+
+      sensorDataTable.appendChild(row);
+    });
+  </script>
+</body>
+</html>
