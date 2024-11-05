@@ -4,31 +4,28 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Sensor Data</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/3.1.3/socket.io.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
   <style>
     body {
       font-family: Arial, sans-serif;
     }
-    table {
-      width: 100%;
-      border-collapse: collapse;
+    canvas {
       margin-top: 20px;
     }
-    table, th, td {
-      border: 1px solid black;
+    .hidden {
+      display: none;
     }
-    th, td {
-      padding: 8px;
-      text-align: left;
-    }
-    th {
-      background-color: #f2f2f2;
+    button {
+      margin-top: 20px;
     }
   </style>
 </head>
 <body>
   <h1>Real-Time Sensor Data</h1>
-  <div id="data">
+  <button id="toggleView">Switch to Graph View</button>
+  <div id="tableView">
     <table id="sensor-table">
       <thead>
         <tr>
@@ -47,11 +44,175 @@
       <tbody id="sensor-data"></tbody>
     </table>
   </div>
+  <div id="graphView" class="hidden">
+    <h2>ADC_0</h2>
+    <canvas id="adcChart"></canvas>
+    <h2>Gyroscope Data</h2>
+    <canvas id="gyroChart"></canvas>
+    <h2>Acceleration Data</h2>
+    <canvas id="accChart"></canvas>
+  </div>
 
   <script>
     const socket = io();
+    console.log("Attempting to connect to Socket.IO");
+
+    socket.on('connect', () => {
+      console.log("Connected to Socket.IO server");
+    });
+
+    var adcCtx = document.getElementById('adcChart').getContext('2d');
+    var adcChart = new Chart(adcCtx, {
+      type: 'line',
+      data: {
+        labels: [],
+        datasets: [{
+          label: 'ADC_0',
+          data: [],
+          borderColor: 'rgba(75, 192, 192, 1)',
+          borderWidth: 1,
+          fill: false
+        }]
+      },
+      options: {
+        scales: {
+          x: {
+            type: 'time',
+            time: {
+              unit: 'second'
+            }
+          },
+          y: {
+            min: 0,
+            max: 5
+          }
+        }
+      }
+    });
+
+    var gyroCtx = document.getElementById('gyroChart').getContext('2d');
+    var gyroChart = new Chart(gyroCtx, {
+      type: 'line',
+      data: {
+        labels: [],
+        datasets: [
+          {
+            label: 'Rotation_x',
+            data: [],
+            borderColor: 'rgba(255, 99, 132, 1)',
+            borderWidth: 1,
+            fill: false
+          },
+          {
+            label: 'Rotation_y',
+            data: [],
+            borderColor: 'rgba(54, 162, 235, 1)',
+            borderWidth: 1,
+            fill: false
+          },
+          {
+            label: 'Rotation_z',
+            data: [],
+            borderColor: 'rgba(255, 206, 86, 1)',
+            borderWidth: 1,
+            fill: false
+          }
+        ]
+      },
+      options: {
+        scales: {
+          x: {
+            type: 'time',
+            time: {
+              unit: 'second'
+            }
+          }
+        }
+      }
+    });
+
+    var accCtx = document.getElementById('accChart').getContext('2d');
+    var accChart = new Chart(accCtx, {
+      type: 'line',
+      data: {
+        labels: [],
+        datasets: [
+          {
+            label: 'Acceleration_x',
+            data: [],
+            borderColor: 'rgba(75, 192, 192, 1)',
+            borderWidth: 1,
+            fill: false
+          },
+          {
+            label: 'Acceleration_y',
+            data: [],
+            borderColor: 'rgba(54, 162, 235, 1)',
+            borderWidth: 1,
+            fill: false
+          },
+          {
+            label: 'Acceleration_z',
+            data: [],
+            borderColor: 'rgba(255, 206, 86, 1)',
+            borderWidth: 1,
+            fill: false
+          }
+        ]
+      },
+      options: {
+        scales: {
+          x: {
+            type: 'time',
+            time: {
+              unit: 'second'
+            }
+          }
+        }
+      }
+    });
 
     socket.on('sensor_update', function(data) {
+      console.log("Received sensor update:", data);
+
+      if (adcChart && adcChart.data) {
+        var time = new Date(data.sensor_read_time);
+        var adcValue = data.AIN0;
+
+        adcChart.data.labels.push(time);
+        adcChart.data.datasets[0].data.push({ x: time, y: adcValue });
+
+        adcChart.update();
+      } else {
+        console.error("ADC Chart or Chart data is not defined");
+      }
+
+      if (gyroChart && gyroChart.data) {
+        var time = new Date(data.sensor_read_time);
+
+        gyroChart.data.labels.push(time);
+        gyroChart.data.datasets[0].data.push({ x: time, y: data.Rotation_x });
+        gyroChart.data.datasets[1].data.push({ x: time, y: data.Rotation_y });
+        gyroChart.data.datasets[2].data.push({ x: time, y: data.Rotation_z });
+
+        gyroChart.update();
+      } else {
+        console.error("Gyro Chart or Chart data is not defined");
+      }
+
+      if (accChart && accChart.data) {
+        var time = new Date(data.sensor_read_time);
+
+        accChart.data.labels.push(time);
+        accChart.data.datasets[0].data.push({ x: time, y: data.Acceleration_x });
+        accChart.data.datasets[1].data.push({ x: time, y: data.Acceleration_y });
+        accChart.data.datasets[2].data.push({ x: time, y: data.Acceleration_z });
+
+        accChart.update();
+      } else {
+        console.error("Acceleration Chart or Chart data is not defined");
+      }
+
       const sensorDataTable = document.getElementById('sensor-data');
       const row = document.createElement('tr');
       
@@ -96,6 +257,20 @@
       row.appendChild(rotZCell);
 
       sensorDataTable.appendChild(row);
+    });
+
+    document.getElementById('toggleView').addEventListener('click', function() {
+      const tableView = document.getElementById('tableView');
+      const graphView = document.getElementById('graphView');
+      if (tableView.classList.contains('hidden')) {
+        tableView.classList.remove('hidden');
+        graphView.classList.add('hidden');
+        this.textContent = 'Switch to Graph View';
+      } else {
+        tableView.classList.add('hidden');
+        graphView.classList.remove('hidden');
+        this.textContent = 'Switch to Table View';
+      }
     });
   </script>
 </body>
