@@ -57,6 +57,9 @@
     const socket = io();
     console.log("Attempting to connect to Socket.IO");
 
+    // Store the initial time
+    const initialTime = Date.now();
+
     socket.on('connect', () => {
       console.log("Connected to Socket.IO server");
     });
@@ -77,9 +80,10 @@
       options: {
         scales: {
           x: {
-            type: 'time',
-            time: {
-              unit: 'second'
+            type: 'linear',
+            title: {
+              display: true,
+              text: 'Time (seconds)'
             }
           },
           y: {
@@ -122,9 +126,10 @@
       options: {
         scales: {
           x: {
-            type: 'time',
-            time: {
-              unit: 'second'
+            type: 'linear',
+            title: {
+              display: true,
+              text: 'Time (seconds)'
             }
           }
         }
@@ -163,9 +168,10 @@
       options: {
         scales: {
           x: {
-            type: 'time',
-            time: {
-              unit: 'second'
+            type: 'linear',
+            title: {
+              display: true,
+              text: 'Time (seconds)'
             }
           }
         }
@@ -175,12 +181,13 @@
     socket.on('sensor_update', function(data) {
       console.log("Received sensor update:", data);
 
+      const currentTime = (Date.now() - initialTime) / 1000; // Calculate elapsed time in seconds
+
       if (adcChart && adcChart.data) {
-        var time = new Date(data.sensor_read_time);
         var adcValue = data.AIN0;
 
-        adcChart.data.labels.push(time);
-        adcChart.data.datasets[0].data.push({ x: time, y: adcValue });
+        adcChart.data.labels.push(currentTime);
+        adcChart.data.datasets[0].data.push({ x: currentTime, y: adcValue });
 
         adcChart.update();
       } else {
@@ -188,12 +195,11 @@
       }
 
       if (gyroChart && gyroChart.data) {
-        var time = new Date(data.sensor_read_time);
 
-        gyroChart.data.labels.push(time);
-        gyroChart.data.datasets[0].data.push({ x: time, y: data.Rotation_x });
-        gyroChart.data.datasets[1].data.push({ x: time, y: data.Rotation_y });
-        gyroChart.data.datasets[2].data.push({ x: time, y: data.Rotation_z });
+        gyroChart.data.labels.push(currentTime);
+        gyroChart.data.datasets[0].data.push({ x: currentTime, y: data.Rotation_x });
+        gyroChart.data.datasets[1].data.push({ x: currentTime, y: data.Rotation_y });
+        gyroChart.data.datasets[2].data.push({ x: currentTime, y: data.Rotation_z });
 
         gyroChart.update();
       } else {
@@ -201,12 +207,11 @@
       }
 
       if (accChart && accChart.data) {
-        var time = new Date(data.sensor_read_time);
 
-        accChart.data.labels.push(time);
-        accChart.data.datasets[0].data.push({ x: time, y: data.Acceleration_x });
-        accChart.data.datasets[1].data.push({ x: time, y: data.Acceleration_y });
-        accChart.data.datasets[2].data.push({ x: time, y: data.Acceleration_z });
+        accChart.data.labels.push(currentTime);
+        accChart.data.datasets[0].data.push({ x: currentTime, y: data.Acceleration_x });
+        accChart.data.datasets[1].data.push({ x: currentTime, y: data.Acceleration_y });
+        accChart.data.datasets[2].data.push({ x: currentTime, y: data.Acceleration_z });
 
         accChart.update();
       } else {
