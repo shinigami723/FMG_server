@@ -18,11 +18,17 @@ void setup(void) {
   
   // WiFi
   WiFi.begin(ssid, password);
-  while (WiFi.status() != WL_CONNECTED) {
+  unsigned long startAttemptTime = millis();
+  while (WiFi.status() != WL_CONNECTED && millis() - startAttemptTime <10000) {
     delay(500);
     Serial.println("Connecting...");
   }
-  Serial.println("Connected");
+
+  if (WiFi.status() == WL_CONNECTED) {
+    Serial.println("Connected");
+  } else {
+    Serial.println("Failed to connect to WiFi");
+  }
 
   configTime(0, 0, "pool.ntp.org");
   Serial.println("Waiting for time sync...");
