@@ -11,6 +11,14 @@
     body {
       font-family: Arial, sans-serif;
     }
+    table {
+      width: 100%;
+      max-width: 1000px;
+      border-collapse: collapse;
+      margin-top: 20px;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+      background-color: #fff;
+    }
     canvas {
       margin-top: 20px;
     }
@@ -33,6 +41,13 @@
           <th>Data Send Time</th>
           <th>Data Receive Time</th>
           <th>ADC_0 (V)</th>
+          <th>ADC_1 (V)</th>
+          <th>ADC_2 (V)</th>
+          <th>ADC_3 (V)</th>
+          <th>ADC_4 (V)</th>
+          <th>ADC_5 (V)</th>
+          <th>ADC_6 (V)</th>
+          <th>ADC_7 (V)</th>
           <th>Acceleration X (m/s²)</th>
           <th>Acceleration Y (m/s²)</th>
           <th>Acceleration Z (m/s²)</th>
@@ -69,22 +84,32 @@
       type: 'line',
       data: {
         labels: [],
-        datasets: [{
-          label: 'ADC_0',
-          data: [],
-          borderColor: 'rgba(75, 192, 192, 1)',
-          borderWidth: 1,
-          fill: false
-        }]
+        datasets: [
+          { label: 'ADC_0', data: [], borderColor: 'rgba(75, 192, 192, 1)', borderWidth: 1, fill: false },
+          { label: 'ADC_1', data: [], borderColor: 'rgba(54, 162, 235, 1)', borderWidth: 1, fill: false },
+          { label: 'ADC_2', data: [], borderColor: 'rgba(255, 206, 86, 1)', borderWidth: 1, fill: false },
+          { label: 'ADC_3', data: [], borderColor: 'rgba(75, 192, 192, 1)', borderWidth: 1, fill: false },
+          { label: 'ADC_4', data: [], borderColor: 'rgba(54, 162, 235, 1)', borderWidth: 1, fill: false },
+          { label: 'ADC_5', data: [], borderColor: 'rgba(255, 206, 86, 1)', borderWidth: 1, fill: false },
+          { label: 'ADC_6', data: [], borderColor: 'rgba(75, 192, 192, 1)', borderWidth: 1, fill: false },
+          { label: 'ADC_7', data: [], borderColor: 'rgba(54, 162, 235, 1)', borderWidth: 1, fill: false }
+        ]
       },
       options: {
+        responsive: true, 
+        plugins: { 
+          legend: { display: true, position: 'top' }, 
+          title: { display: true, text: 'ADC Channels Voltage Over Time' }, 
+          zoom: { 
+            pan: { enabled: true, mode: 'xy' }, 
+            zoom: { enabled: true, mode: 'xy' } 
+          } 
+        },
         scales: {
           x: {
             type: 'linear',
             title: {
-              display: true,
-              text: 'Time (seconds)'
-            }
+              display: true, text: 'Time (seconds)' }
           },
           y: {
             min: 0,
@@ -100,37 +125,16 @@
       data: {
         labels: [],
         datasets: [
-          {
-            label: 'Rotation_x',
-            data: [],
-            borderColor: 'rgba(255, 99, 132, 1)',
-            borderWidth: 1,
-            fill: false
-          },
-          {
-            label: 'Rotation_y',
-            data: [],
-            borderColor: 'rgba(54, 162, 235, 1)',
-            borderWidth: 1,
-            fill: false
-          },
-          {
-            label: 'Rotation_z',
-            data: [],
-            borderColor: 'rgba(255, 206, 86, 1)',
-            borderWidth: 1,
-            fill: false
-          }
+          { label: 'Rotation_x', data: [], borderColor: 'rgba(255, 99, 132, 1)', borderWidth: 1, fill: false },
+          { label: 'Rotation_y', data: [], borderColor: 'rgba(54, 162, 235, 1)', borderWidth: 1, fill: false },
+          { label: 'Rotation_z', data: [], borderColor: 'rgba(255, 206, 86, 1)', borderWidth: 1, fill: false }
         ]
       },
       options: {
         scales: {
           x: {
             type: 'linear',
-            title: {
-              display: true,
-              text: 'Time (seconds)'
-            }
+            title: { display: true, text: 'Time (seconds)' }
           }
         }
       }
@@ -142,37 +146,16 @@
       data: {
         labels: [],
         datasets: [
-          {
-            label: 'Acceleration_x',
-            data: [],
-            borderColor: 'rgba(75, 192, 192, 1)',
-            borderWidth: 1,
-            fill: false
-          },
-          {
-            label: 'Acceleration_y',
-            data: [],
-            borderColor: 'rgba(54, 162, 235, 1)',
-            borderWidth: 1,
-            fill: false
-          },
-          {
-            label: 'Acceleration_z',
-            data: [],
-            borderColor: 'rgba(255, 206, 86, 1)',
-            borderWidth: 1,
-            fill: false
-          }
+        { label: 'Acceleration_x', data: [], borderColor: 'rgba(75, 192, 192, 1)', borderWidth: 1, fill: false }, 
+        { label: 'Acceleration_y', data: [], borderColor: 'rgba(54, 162, 235, 1)', borderWidth: 1, fill: false }, 
+        { label: 'Acceleration_z', data: [], borderColor: 'rgba(255, 206, 86, 1)', borderWidth: 1, fill: false }
         ]
       },
       options: {
         scales: {
           x: {
             type: 'linear',
-            title: {
-              display: true,
-              text: 'Time (seconds)'
-            }
+            title: { display: true, text: 'Time (seconds)' }
           }
         }
       }
@@ -187,7 +170,14 @@
         var adcValue = data.AIN0;
 
         adcChart.data.labels.push(currentTime);
-        adcChart.data.datasets[0].data.push({ x: currentTime, y: adcValue });
+        adcChart.data.datasets[0].data.push({ x: currentTime, y: data.AIN0 });
+        adcChart.data.datasets[1].data.push({ x: currentTime, y: data.AIN1 }); 
+        adcChart.data.datasets[2].data.push({ x: currentTime, y: data.AIN2 }); 
+        adcChart.data.datasets[3].data.push({ x: currentTime, y: data.AIN3 }); 
+        adcChart.data.datasets[4].data.push({ x: currentTime, y: data.AIN4 }); 
+        adcChart.data.datasets[5].data.push({ x: currentTime, y: data.AIN5 }); 
+        adcChart.data.datasets[6].data.push({ x: currentTime, y: data.AIN6 }); 
+        adcChart.data.datasets[7].data.push({ x: currentTime, y: data.AIN7 });
 
         adcChart.update();
       } else {
@@ -233,9 +223,37 @@
       receiveTimeCell.textContent = data.data_receive_time;
       row.appendChild(receiveTimeCell);
 
-      const adcCell = document.createElement('td');
-      adcCell.textContent = data.AIN0;
-      row.appendChild(adcCell);
+      const adc0Cell = document.createElement('td');
+      adc0Cell.textContent = data.AIN0;
+      row.appendChild(adc0Cell);
+
+      const adc1Cell = document.createElement('td');
+      adc1Cell.textContent = data.AIN1;
+      row.appendChild(adc1Cell);
+
+      const adc2Cell = document.createElement('td');
+      adc2Cell.textContent = data.AIN2;
+      row.appendChild(adc2Cell);
+
+      const adc3Cell = document.createElement('td');
+      adc3Cell.textContent = data.AIN3;
+      row.appendChild(adc3Cell);
+
+      const adc4Cell = document.createElement('td');
+      adc4Cell.textContent = data.AIN4;
+      row.appendChild(adc4Cell);
+
+      const adc5Cell = document.createElement('td');
+      adc5Cell.textContent = data.AIN5;
+      row.appendChild(adc5Cell);
+
+      const adc6Cell = document.createElement('td');
+      adc6Cell.textContent = data.AIN6;
+      row.appendChild(adc6Cell);
+
+      const adc7Cell = document.createElement('td');
+      adc7Cell.textContent = data.AIN7;
+      row.appendChild(adc7Cell);
 
       const accXCell = document.createElement('td');
       accXCell.textContent = data.Acceleration_x;
