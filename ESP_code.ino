@@ -94,7 +94,7 @@ void loop(void) {
                       ", \"Rotation_x\": " + String(g.gyro.x) + 
                       ", \"Rotation_y\": " + String(g.gyro.y) + 
                       ", \"Rotation_z\": " + String(g.gyro.z) + "}";
-
+    
     int httpResponseCode = http.POST(jsonData);
 
     if (httpResponseCode > 0) {

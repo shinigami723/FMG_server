@@ -30,7 +30,9 @@ def sensor_data():
         logging.info(f"Received data: {data}")
 
         # Check if all required fields are present
-        required_fields = ["sensor_read_time", "data_send_time", "AIN0", "Acceleration_x", "Acceleration_y", "Acceleration_z", "Rotation_x", "Rotation_y", "Rotation_z"]
+        required_fields = ["sensor_read_time", "data_send_time", "AIN0", "AIN1", "AIN2", "AIN3", "AIN4", "AIN5", "AIN6", "AIN7",
+                           "Acceleration_x", "Acceleration_y", "Acceleration_z",
+                           "Rotation_x", "Rotation_y", "Rotation_z"]
         for field in required_fields:
             if field not in data:
                 raise ValueError(f"Missing field: {field}")
@@ -41,7 +43,8 @@ def sensor_data():
         # Append data to text file
         with open(txt_file_path, mode='a') as file:
             file.write(f"{data['sensor_read_time']}, {data['data_send_time']}, {receive_time}, "
-                       f"{data['AIN0']}, {data['Acceleration_x']}, {data['Acceleration_y']}, {data['Acceleration_z']}, "
+                       f"{data['AIN0']}, {data['AIN1']}, {data['AIN2']}, {data['AIN3']}, {data['AIN4']}, {data['AIN5']}, {data['AIN6']}, {data['AIN7']}, "
+                       f"{data['Acceleration_x']}, {data['Acceleration_y']}, {data['Acceleration_z']}, "
                        f"{data['Rotation_x']}, {data['Rotation_y']}, {data['Rotation_z']}\n")
 
         # Prepare data for web client
