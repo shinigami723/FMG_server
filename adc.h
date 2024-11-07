@@ -3,22 +3,32 @@
 
 #include <Adafruit_ADS1X15.h>
 
+extern Adafruit_ADS1115 ads1;
+extern Adafruit_ADS1115 ads2;
+
 void setupADC()
 {
-    Serial.println("Getting single-ended readings from AIN0");
-    Serial.println("ADC Range: +/- 4.096V (1 bit = 0.125mV)");
-    if (!ads.begin())
+    Serial.println("Initializing ADS1115 instances...");
+    if (!ads1.begin(0x48))
     {
-        Serial.println("Failed to initialize ADS.");
+        Serial.println("Failed to initialize ADS1.");
         while (1);
     }
-    ads.setGain(GAIN_ONE); // Gain of 1, +/- 4.096V
+    if (!ads2.begin(0x49))
+    {
+        Serial.println("Failed to initialize ADS2.");
+        while (1);
+    }
+    ads1.setGain(GAIN_ONE); // Gain of 1, +/- 4.096V
+    ads2.setGain(GAIN_ONE); // Gain of 1, +/- 4.096V
 }
 
-float readADC()
+float readADC(Adafruit_ADS1115 &ads, int channel)
 {
-    int16_t adc0 = ads.readADC_SingleEnded(0);
-    float volts0 = ads.computeVolts(adc0);
-    Serial.print("AIN0: "); Serial.print(adc0); Serial.print(" "); Serial.print(volts0, 3); Serial.println(" V");
-    return volts0;
+    int16_t adcValue = ads.readADC_SingleEnded(channel);
+    float volts = ads.computeVolts(adcValue);
+    Serial.print("ADC Channel "); Serial.print(channel); Serial.print(": "); Serial.print(adcValue); Serial.print(" "); Serial.print(volts, 3); Serial.println(" V");
+    return volts;
 }
+
+#endif
