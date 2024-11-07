@@ -72,10 +72,6 @@ void loop(void) {
     sensors_event_t a, g, temp;
     readMPU(a, g, temp);
 
-    Serial.print("Acceleration X: "); Serial.print(a.acceleration.x); Serial.print(", Y: "); Serial.print(a.acceleration.y); Serial.print(", Z: "); Serial.println(a.acceleration.z); Serial.print(" m/s^2");
-    Serial.print("Rotation X: "); Serial.print(g.gyro.x); Serial.print(", Y: "); Serial.print(g.gyro.y); Serial.print(", Z: "); Serial.println(g.gyro.z); Serial.println(" rad/s");
-    Serial.println("");
-
     String jsonData = "{\"sensor_read_time\": \"" + read_timestamp + 
                       "\", \"data_send_time\": \""+ send_timestamp + 
                       "\", \"AIN0\": " + String(volts0, 3) + 
