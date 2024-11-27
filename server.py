@@ -43,9 +43,7 @@ def sensor_data():
         data = request.json
 
         # Extract numeric values and format them
-        numeric_values = (f"{data['counter']}, {data['AIN0']}, {data['AIN1']}, {data['AIN2']}, {data['AIN3']}, {data['AIN4']}, {data['AIN5']}, {data['AIN6']}, {data['AIN7']}, "
-                          f"{data['Acceleration_x']}, {data['Acceleration_y']}, {data['Acceleration_z']}, "
-                          f"{data['Rotation_x']}, {data['Rotation_y']}, {data['Rotation_z']}")
+        numeric_values = ", ".join(map(str,data))
 
         # Display the numeric values on the terminal
         print(f"{numeric_values}")
