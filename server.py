@@ -5,6 +5,7 @@ from datetime import datetime
 from queue import Queue
 from threading import Thread
 import logging
+import socket
 
 app = Flask(__name__)
 socketio = SocketIO(app)
@@ -29,34 +30,40 @@ def write_to_file():
         data = write_queue.get()
         if data is None:
             break
-        with open(txt_file_path, mode='a') as file:
-            file.write(data)
+        try:
+            with open(txt_file_path, mode='a') as file:
+                file.write(data)
+        except IOError as e:
+            print(f"Error writing to file: {e}")
         write_queue.task_done()
 
 # Start a thread for writing to the file
 writer_thread = Thread(target=write_to_file)
 writer_thread.start()
 
-@app.route('/sensor', methods=['POST'])
-def sensor_data():
-    try:
-        data = request.json
+# UDP server setup
+UDP_IP = "0.0.0.0"
+UDP_PORT = 5000
+sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+sock.bind((UDP_IP, UDP_PORT))
 
-        # Extract numeric values and format them
-        numeric_values = ", ".join(map(str,data))
+def udp_listener():
+    while True:
+        data, addr = sock.recvfrom(1024)
+        data = data.decode('utf-8')
 
         # Display the numeric values on the terminal
-        print(f"{numeric_values}")
+        print(f"{data}")
 
         # Append data to text file
-        data_to_write = numeric_values + "\n"
+        data_to_write = data + "\n"
         
         # Add data to the queue
         write_queue.put(data_to_write)
         
-        return jsonify({"status": "success", "data": data}), 200
-    except Exception as e:
-        return jsonify({"status": "error", "message": str(e)}), 500
+# Start the UDP listener thread
+udp_thread = Thread(target=udp_listener)
+udp_thread.start()
 
 if __name__ == '__main__':
     try:
