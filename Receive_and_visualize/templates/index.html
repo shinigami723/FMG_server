@@ -8,142 +8,167 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.1/socket.io.min.js"></script>
     <style>
         body {
-            font-family: Arial, sans-serif;
             margin: 0;
-            padding: 20px;
-            background-color: #f4f4f9;
-            color: #333;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            background: linear-gradient(120deg, #f8f9fa, #e9ecef);
         }
+
         h1 {
             text-align: center;
-            margin-bottom: 30px;
-            color: #444;
+            color: #333;
+            font-weight: bold;
+            margin: 20px 0;
         }
+
+        .charts-container {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            grid-template-rows: 1fr 1fr;
+            gap: 10px;
+            height: calc(100vh - 60px);
+            padding: 10px;
+        }
+
         .chart-container {
-            margin-bottom: 50px;
-            padding: 20px;
             background: white;
-            border-radius: 10px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border-radius: 15px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            padding: 10px;
+            overflow: hidden;
         }
+
+        .large-chart {
+            grid-row: span 2;
+        }
+
         canvas {
-            max-width: 100%;
-            height: auto;
+            width: 100% !important;
+            height: 100% !important;
         }
     </style>
 </head>
 <body>
     <h1>Real-Time Data Visualization</h1>
+    <div class="charts-container">
+        <!-- ADC Graph -->
+        <div class="chart-container large-chart">
+            <canvas id="adcChart"></canvas>
+        </div>
 
-    <div class="chart-container">
-        <h2 style="text-align:center;">ADC Values</h2>
-        <canvas id="adcChart"></canvas>
-    </div>
+        <!-- Acceleration Graph -->
+        <div class="chart-container">
+            <canvas id="accelChart"></canvas>
+        </div>
 
-    <div class="chart-container">
-        <h2 style="text-align:center;">Acceleration (g)</h2>
-        <canvas id="accelChart"></canvas>
-    </div>
-
-    <div class="chart-container">
-        <h2 style="text-align:center;">Rotation (degrees/s)</h2>
-        <canvas id="rotationChart"></canvas>
+        <!-- Rotation Graph -->
+        <div class="chart-container">
+            <canvas id="rotationChart"></canvas>
+        </div>
     </div>
 
     <script>
-        // Connect to the WebSocket
         const socket = io();
+        const maxVisiblePoints = 100;
+        const updateInterval = 100;
+        const adcBuffer = [];
+        const accelBuffer = [];
+        const rotationBuffer = [];
 
-        const maxVisiblePoints = 100; // Maximum number of points visible on each graph
-        const updateInterval = 100; // Interval for updating the charts (in ms)
-        const adcBuffer = []; // Buffer for ADC data
-        const accelBuffer = []; // Buffer for acceleration data
-        const rotationBuffer = []; // Buffer for rotation data
-
-        // Function to create a Chart.js dataset
         function createDataset(label, color) {
             return {
                 label: label,
                 data: [],
                 borderColor: color,
+                backgroundColor: 'rgba(0, 0, 0, 0)',
                 borderWidth: 2,
-                fill: false,
-                tension: 0.4, // Spline effect
-                pointRadius: 0 // Hide the small dots
+                tension: 0.4,
+                pointRadius: 0
             };
         }
 
-        // ADC chart datasets
-        const adcDatasets = Array(8).fill().map((_, i) => createDataset(`ADC Channel ${i + 1}`, `hsl(${i * 45}, 70%, 50%)`));
-        const accelDatasets = [
-            createDataset("Acceleration X", "red"),
-            createDataset("Acceleration Y", "green"),
-            createDataset("Acceleration Z", "blue")
-        ];
-        const rotationDatasets = [
-            createDataset("Rotation X", "purple"),
-            createDataset("Rotation Y", "orange"),
-            createDataset("Rotation Z", "cyan")
-        ];
-
-        // Chart options for consistent styling
-        const chartOptions = (title) => ({
-            responsive: true,
-            animation: false,
-            plugins: {
-                legend: {
-                    display: true,
-                    position: 'top',
-                    labels: {
-                        color: '#333',
-                        font: { size: 12 }
+        function createChartOptions(xLabel, yLabel) {
+            return {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: false,
+                plugins: {
+                    legend: {
+                        display: true,
+                        labels: {
+                            color: '#333',
+                            font: { size: 14 }
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(0,0,0,0.8)',
+                        cornerRadius: 6
                     }
                 },
-                title: {
-                    display: true,
-                    text: title,
-                    color: '#444',
-                    font: { size: 16 }
-                },
-                tooltip: {
-                    backgroundColor: 'rgba(0,0,0,0.8)',
-                    titleColor: '#fff',
-                    bodyColor: '#fff',
-                    footerColor: '#fff'
+                scales: {
+                    x: {
+                        title: {
+                            display: true,
+                            text: xLabel,
+                            color: '#555',
+                            font: { size: 14, weight: 'bold' }
+                        },
+                        grid: { color: 'rgba(220, 220, 220, 0.3)' },
+                        ticks: { color: '#333' }
+                    },
+                    y: {
+                        title: {
+                            display: true,
+                            text: yLabel,
+                            color: '#555',
+                            font: { size: 14, weight: 'bold' }
+                        },
+                        grid: { color: 'rgba(220, 220, 220, 0.3)' },
+                        ticks: { color: '#333' }
+                    }
                 }
-            },
-            scales: {
-                x: {
-                    title: { display: true, text: 'Counter', color: '#333', font: { size: 14 } },
-                    grid: { color: 'rgba(200, 200, 200, 0.2)' }
-                },
-                y: {
-                    title: { display: true, text: title, color: '#333', font: { size: 14 } },
-                    grid: { color: 'rgba(200, 200, 200, 0.2)' }
-                }
-            }
-        });
+            };
+        }
 
-        // Initialize charts
-        const adcChart = new Chart(document.getElementById('adcChart').getContext('2d'), {
+        const ctxAdc = document.getElementById('adcChart').getContext('2d');
+        const adcDatasets = Array(8).fill().map((_, i) => 
+            createDataset(`ADC ${i + 1}`, `hsl(${i * 45}, 80%, 60%)`)
+        );
+
+        const ctxAccel = document.getElementById('accelChart').getContext('2d');
+        const accelDatasets = [
+            createDataset("Acceleration X", "rgba(255, 99, 132, 1)"),
+            createDataset("Acceleration Y", "rgba(54, 162, 235, 1)"),
+            createDataset("Acceleration Z", "rgba(75, 192, 192, 1)")
+        ];
+
+        const ctxRotation = document.getElementById('rotationChart').getContext('2d');
+        const rotationDatasets = [
+            createDataset("Rotation X", "rgba(153, 102, 255, 1)"),
+            createDataset("Rotation Y", "rgba(255, 159, 64, 1)"),
+            createDataset("Rotation Z", "rgba(255, 205, 86, 1)")
+        ];
+
+        const adcChart = new Chart(ctxAdc, {
             type: 'line',
             data: { labels: [], datasets: adcDatasets },
-            options: chartOptions('ADC Value')
+            options: createChartOptions("Time (s)", "ADC Value")
         });
 
-        const accelChart = new Chart(document.getElementById('accelChart').getContext('2d'), {
+        const accelChart = new Chart(ctxAccel, {
             type: 'line',
             data: { labels: [], datasets: accelDatasets },
-            options: chartOptions('Acceleration (g)')
+            options: createChartOptions("Time (s)", "Acceleration (g)")
         });
 
-        const rotationChart = new Chart(document.getElementById('rotationChart').getContext('2d'), {
+        const rotationChart = new Chart(ctxRotation, {
             type: 'line',
             data: { labels: [], datasets: rotationDatasets },
-            options: chartOptions('Rotation (degrees/s)')
+            options: createChartOptions("Time (s)", "Rotation (°/s)")
         });
 
-        // Function to update a chart from a buffer
         function updateChart(chart, buffer, maxVisiblePoints) {
             if (buffer.length > 0) {
                 buffer.forEach(({ counter, values }) => {
@@ -151,31 +176,24 @@
                     chart.data.datasets.forEach((dataset, index) => {
                         dataset.data.push(values[index]);
                     });
-
-                    // Maintain a fixed number of visible points
                     if (chart.data.labels.length > maxVisiblePoints) {
                         chart.data.labels.shift();
                         chart.data.datasets.forEach(dataset => dataset.data.shift());
                     }
                 });
-
-                buffer.length = 0; // Clear the buffer
+                buffer.length = 0;
                 chart.update();
             }
         }
 
-        // Periodically update charts
         setInterval(() => {
             updateChart(adcChart, adcBuffer, maxVisiblePoints);
             updateChart(accelChart, accelBuffer, maxVisiblePoints);
             updateChart(rotationChart, rotationBuffer, maxVisiblePoints);
         }, updateInterval);
 
-        // Listen for new data from the WebSocket
         socket.on('new_data', (data) => {
             const { counter, adc, acceleration, rotation } = data;
-
-            // Push data into respective buffers
             adcBuffer.push({ counter, values: adc });
             accelBuffer.push({ counter, values: acceleration });
             rotationBuffer.push({ counter, values: rotation });
