@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real-Time Data Visualization</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.1/socket.io.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f9;
+            color: #333;
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #444;
+        }
+        .chart-container {
+            margin-bottom: 50px;
+            padding: 20px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        canvas {
+            max-width: 100%;
+            height: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>Real-Time Data Visualization</h1>
+
+    <div class="chart-container">
+        <h2 style="text-align:center;">ADC Values</h2>
+        <canvas id="adcChart"></canvas>
+    </div>
+
+    <div class="chart-container">
+        <h2 style="text-align:center;">Acceleration (g)</h2>
+        <canvas id="accelChart"></canvas>
+    </div>
+
+    <div class="chart-container">
+        <h2 style="text-align:center;">Rotation (degrees/s)</h2>
+        <canvas id="rotationChart"></canvas>
+    </div>
+
+    <script>
+        // Connect to the WebSocket
+        const socket = io();
+
+        const maxVisiblePoints = 100; // Maximum number of points visible on each graph
+        const updateInterval = 100; // Interval for updating the charts (in ms)
+        const adcBuffer = []; // Buffer for ADC data
+        const accelBuffer = []; // Buffer for acceleration data
+        const rotationBuffer = []; // Buffer for rotation data
+
+        // Function to create a Chart.js dataset
+        function createDataset(label, color) {
+            return {
+                label: label,
+                data: [],
+                borderColor: color,
+                borderWidth: 2,
+                fill: false,
+                tension: 0.4, // Spline effect
+                pointRadius: 0 // Hide the small dots
+            };
+        }
+
+        // ADC chart datasets
+        const adcDatasets = Array(8).fill().map((_, i) => createDataset(`ADC Channel ${i + 1}`, `hsl(${i * 45}, 70%, 50%)`));
+        const accelDatasets = [
+            createDataset("Acceleration X", "red"),
+            createDataset("Acceleration Y", "green"),
+            createDataset("Acceleration Z", "blue")
+        ];
+        const rotationDatasets = [
+            createDataset("Rotation X", "purple"),
+            createDataset("Rotation Y", "orange"),
+            createDataset("Rotation Z", "cyan")
+        ];
+
+        // Chart options for consistent styling
+        const chartOptions = (title) => ({
+            responsive: true,
+            animation: false,
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top',
+                    labels: {
+                        color: '#333',
+                        font: { size: 12 }
+                    }
+                },
+                title: {
+                    display: true,
+                    text: title,
+                    color: '#444',
+                    font: { size: 16 }
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(0,0,0,0.8)',
+                    titleColor: '#fff',
+                    bodyColor: '#fff',
+                    footerColor: '#fff'
+                }
+            },
+            scales: {
+                x: {
+                    title: { display: true, text: 'Counter', color: '#333', font: { size: 14 } },
+                    grid: { color: 'rgba(200, 200, 200, 0.2)' }
+                },
+                y: {
+                    title: { display: true, text: title, color: '#333', font: { size: 14 } },
+                    grid: { color: 'rgba(200, 200, 200, 0.2)' }
+                }
+            }
+        });
+
+        // Initialize charts
+        const adcChart = new Chart(document.getElementById('adcChart').getContext('2d'), {
+            type: 'line',
+            data: { labels: [], datasets: adcDatasets },
+            options: chartOptions('ADC Value')
+        });
+
+        const accelChart = new Chart(document.getElementById('accelChart').getContext('2d'), {
+            type: 'line',
+            data: { labels: [], datasets: accelDatasets },
+            options: chartOptions('Acceleration (g)')
+        });
+
+        const rotationChart = new Chart(document.getElementById('rotationChart').getContext('2d'), {
+            type: 'line',
+            data: { labels: [], datasets: rotationDatasets },
+            options: chartOptions('Rotation (degrees/s)')
+        });
+
+        // Function to update a chart from a buffer
+        function updateChart(chart, buffer, maxVisiblePoints) {
+            if (buffer.length > 0) {
+                buffer.forEach(({ counter, values }) => {
+                    chart.data.labels.push(counter);
+                    chart.data.datasets.forEach((dataset, index) => {
+                        dataset.data.push(values[index]);
+                    });
+
+                    // Maintain a fixed number of visible points
+                    if (chart.data.labels.length > maxVisiblePoints) {
+                        chart.data.labels.shift();
+                        chart.data.datasets.forEach(dataset => dataset.data.shift());
+                    }
+                });
+
+                buffer.length = 0; // Clear the buffer
+                chart.update();
+            }
+        }
+
+        // Periodically update charts
+        setInterval(() => {
+            updateChart(adcChart, adcBuffer, maxVisiblePoints);
+            updateChart(accelChart, accelBuffer, maxVisiblePoints);
+            updateChart(rotationChart, rotationBuffer, maxVisiblePoints);
+        }, updateInterval);
+
+        // Listen for new data from the WebSocket
+        socket.on('new_data', (data) => {
+            const { counter, adc, acceleration, rotation } = data;
+
+            // Push data into respective buffers
+            adcBuffer.push({ counter, values: adc });
+            accelBuffer.push({ counter, values: acceleration });
+            rotationBuffer.push({ counter, values: rotation });
+        });
+    </script>
+</body>
+</html>
