@@ -1,300 +1,203 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sensor Data</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/3.1.3/socket.io.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-    }
-    table {
-      width: 100%;
-      max-width: 1000px;
-      border-collapse: collapse;
-      margin-top: 20px;
-      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-      background-color: #fff;
-    }
-    canvas {
-      margin-top: 20px;
-    }
-    .hidden {
-      display: none;
-    }
-    button {
-      margin-top: 20px;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real-Time Data Visualization</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.1/socket.io.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            background: linear-gradient(120deg, #f8f9fa, #e9ecef);
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            font-weight: bold;
+            margin: 20px 0;
+        }
+
+        .charts-container {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            grid-template-rows: 1fr 1fr;
+            gap: 10px;
+            height: calc(100vh - 60px);
+            padding: 10px;
+        }
+
+        .chart-container {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            padding: 10px;
+            overflow: hidden;
+        }
+
+        .large-chart {
+            grid-row: span 2;
+        }
+
+        canvas {
+            width: 100% !important;
+            height: 100% !important;
+        }
+    </style>
 </head>
 <body>
-  <h1>Real-Time Sensor Data</h1>
-  <button id="toggleView">Switch to Graph View</button>
-  <div id="tableView">
-    <table id="sensor-table">
-      <thead>
-        <tr>
-          <th>Sensor Read Time</th>
-          <th>Data Send Time</th>
-          <th>Data Receive Time</th>
-          <th>ADC_0 (V)</th>
-          <th>ADC_1 (V)</th>
-          <th>ADC_2 (V)</th>
-          <th>ADC_3 (V)</th>
-          <th>ADC_4 (V)</th>
-          <th>ADC_5 (V)</th>
-          <th>ADC_6 (V)</th>
-          <th>ADC_7 (V)</th>
-          <th>Acceleration X (m/s²)</th>
-          <th>Acceleration Y (m/s²)</th>
-          <th>Acceleration Z (m/s²)</th>
-          <th>Rotation X (rad/s)</th>
-          <th>Rotation Y (rad/s)</th>
-          <th>Rotation Z (rad/s)</th>
-        </tr>
-      </thead>
-      <tbody id="sensor-data"></tbody>
-    </table>
-  </div>
-  <div id="graphView" class="hidden">
-    <h2>ADC_0</h2>
-    <canvas id="adcChart"></canvas>
-    <h2>Gyroscope Data</h2>
-    <canvas id="gyroChart"></canvas>
-    <h2>Acceleration Data</h2>
-    <canvas id="accChart"></canvas>
-  </div>
+    <h1>Real-Time Data Visualization</h1>
+    <div class="charts-container">
+        <!-- ADC Graph -->
+        <div class="chart-container large-chart">
+            <canvas id="adcChart"></canvas>
+        </div>
 
-  <script>
-    const socket = io();
-    console.log("Attempting to connect to Socket.IO");
+        <!-- Acceleration Graph -->
+        <div class="chart-container">
+            <canvas id="accelChart"></canvas>
+        </div>
 
-    // Store the initial time
-    const initialTime = Date.now();
+        <!-- Rotation Graph -->
+        <div class="chart-container">
+            <canvas id="rotationChart"></canvas>
+        </div>
+    </div>
 
-    socket.on('connect', () => {
-      console.log("Connected to Socket.IO server");
-    });
+    <script>
+        const socket = io();
+        const maxVisiblePoints = 100;
+        const updateInterval = 100;
+        const adcBuffer = [];
+        const accelBuffer = [];
+        const rotationBuffer = [];
 
-    var adcCtx = document.getElementById('adcChart').getContext('2d');
-    var adcChart = new Chart(adcCtx, {
-      type: 'line',
-      data: {
-        labels: [],
-        datasets: [
-          { label: 'ADC_0', data: [], borderColor: 'rgba(75, 192, 192, 1)', borderWidth: 1, fill: false },
-          { label: 'ADC_1', data: [], borderColor: 'rgba(54, 162, 235, 1)', borderWidth: 1, fill: false },
-          { label: 'ADC_2', data: [], borderColor: 'rgba(255, 206, 86, 1)', borderWidth: 1, fill: false },
-          { label: 'ADC_3', data: [], borderColor: 'rgba(75, 192, 192, 1)', borderWidth: 1, fill: false },
-          { label: 'ADC_4', data: [], borderColor: 'rgba(54, 162, 235, 1)', borderWidth: 1, fill: false },
-          { label: 'ADC_5', data: [], borderColor: 'rgba(255, 206, 86, 1)', borderWidth: 1, fill: false },
-          { label: 'ADC_6', data: [], borderColor: 'rgba(75, 192, 192, 1)', borderWidth: 1, fill: false },
-          { label: 'ADC_7', data: [], borderColor: 'rgba(54, 162, 235, 1)', borderWidth: 1, fill: false }
-        ]
-      },
-      options: {
-        responsive: true, 
-        plugins: { 
-          legend: { display: true, position: 'top' }, 
-          title: { display: true, text: 'ADC Channels Voltage Over Time' }, 
-          zoom: { 
-            pan: { enabled: true, mode: 'xy' }, 
-            zoom: { enabled: true, mode: 'xy' } 
-          } 
-        },
-        scales: {
-          x: {
-            type: 'linear',
-            title: {
-              display: true, text: 'Time (seconds)' }
-          },
-          y: {
-            min: 0,
-            max: 5
-          }
+        function createDataset(label, color) {
+            return {
+                label: label,
+                data: [],
+                borderColor: color,
+                backgroundColor: 'rgba(0, 0, 0, 0)',
+                borderWidth: 2,
+                tension: 0.4,
+                pointRadius: 0
+            };
         }
-      }
-    });
 
-    var gyroCtx = document.getElementById('gyroChart').getContext('2d');
-    var gyroChart = new Chart(gyroCtx, {
-      type: 'line',
-      data: {
-        labels: [],
-        datasets: [
-          { label: 'Rotation_x', data: [], borderColor: 'rgba(255, 99, 132, 1)', borderWidth: 1, fill: false },
-          { label: 'Rotation_y', data: [], borderColor: 'rgba(54, 162, 235, 1)', borderWidth: 1, fill: false },
-          { label: 'Rotation_z', data: [], borderColor: 'rgba(255, 206, 86, 1)', borderWidth: 1, fill: false }
-        ]
-      },
-      options: {
-        scales: {
-          x: {
-            type: 'linear',
-            title: { display: true, text: 'Time (seconds)' }
-          }
+        function createChartOptions(xLabel, yLabel) {
+            return {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: false,
+                plugins: {
+                    legend: {
+                        display: true,
+                        labels: {
+                            color: '#333',
+                            font: { size: 14 }
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(0,0,0,0.8)',
+                        cornerRadius: 6
+                    }
+                },
+                scales: {
+                    x: {
+                        title: {
+                            display: true,
+                            text: xLabel,
+                            color: '#555',
+                            font: { size: 14, weight: 'bold' }
+                        },
+                        grid: { color: 'rgba(220, 220, 220, 0.3)' },
+                        ticks: { color: '#333' }
+                    },
+                    y: {
+                        title: {
+                            display: true,
+                            text: yLabel,
+                            color: '#555',
+                            font: { size: 14, weight: 'bold' }
+                        },
+                        grid: { color: 'rgba(220, 220, 220, 0.3)' },
+                        ticks: { color: '#333' }
+                    }
+                }
+            };
         }
-      }
-    });
 
-    var accCtx = document.getElementById('accChart').getContext('2d');
-    var accChart = new Chart(accCtx, {
-      type: 'line',
-      data: {
-        labels: [],
-        datasets: [
-        { label: 'Acceleration_x', data: [], borderColor: 'rgba(75, 192, 192, 1)', borderWidth: 1, fill: false }, 
-        { label: 'Acceleration_y', data: [], borderColor: 'rgba(54, 162, 235, 1)', borderWidth: 1, fill: false }, 
-        { label: 'Acceleration_z', data: [], borderColor: 'rgba(255, 206, 86, 1)', borderWidth: 1, fill: false }
-        ]
-      },
-      options: {
-        scales: {
-          x: {
-            type: 'linear',
-            title: { display: true, text: 'Time (seconds)' }
-          }
+        const ctxAdc = document.getElementById('adcChart').getContext('2d');
+        const adcDatasets = Array(8).fill().map((_, i) => 
+            createDataset(`ADC ${i + 1}`, `hsl(${i * 45}, 80%, 60%)`)
+        );
+
+        const ctxAccel = document.getElementById('accelChart').getContext('2d');
+        const accelDatasets = [
+            createDataset("Acceleration X", "rgba(255, 99, 132, 1)"),
+            createDataset("Acceleration Y", "rgba(54, 162, 235, 1)"),
+            createDataset("Acceleration Z", "rgba(75, 192, 192, 1)")
+        ];
+
+        const ctxRotation = document.getElementById('rotationChart').getContext('2d');
+        const rotationDatasets = [
+            createDataset("Rotation X", "rgba(153, 102, 255, 1)"),
+            createDataset("Rotation Y", "rgba(255, 159, 64, 1)"),
+            createDataset("Rotation Z", "rgba(255, 205, 86, 1)")
+        ];
+
+        const adcChart = new Chart(ctxAdc, {
+            type: 'line',
+            data: { labels: [], datasets: adcDatasets },
+            options: createChartOptions("Time (s)", "ADC Value")
+        });
+
+        const accelChart = new Chart(ctxAccel, {
+            type: 'line',
+            data: { labels: [], datasets: accelDatasets },
+            options: createChartOptions("Time (s)", "Acceleration (g)")
+        });
+
+        const rotationChart = new Chart(ctxRotation, {
+            type: 'line',
+            data: { labels: [], datasets: rotationDatasets },
+            options: createChartOptions("Time (s)", "Rotation (°/s)")
+        });
+
+        function updateChart(chart, buffer, maxVisiblePoints) {
+            if (buffer.length > 0) {
+                buffer.forEach(({ counter, values }) => {
+                    chart.data.labels.push(counter);
+                    chart.data.datasets.forEach((dataset, index) => {
+                        dataset.data.push(values[index]);
+                    });
+                    if (chart.data.labels.length > maxVisiblePoints) {
+                        chart.data.labels.shift();
+                        chart.data.datasets.forEach(dataset => dataset.data.shift());
+                    }
+                });
+                buffer.length = 0;
+                chart.update();
+            }
         }
-      }
-    });
 
-    socket.on('sensor_update', function(data) {
-      console.log("Received sensor update:", data);
+        setInterval(() => {
+            updateChart(adcChart, adcBuffer, maxVisiblePoints);
+            updateChart(accelChart, accelBuffer, maxVisiblePoints);
+            updateChart(rotationChart, rotationBuffer, maxVisiblePoints);
+        }, updateInterval);
 
-      const currentTime = (Date.now() - initialTime) / 1000; // Calculate elapsed time in seconds
-
-      if (adcChart && adcChart.data) {
-        var adcValue = data.AIN0;
-
-        adcChart.data.labels.push(currentTime);
-        adcChart.data.datasets[0].data.push({ x: currentTime, y: data.AIN0 });
-        adcChart.data.datasets[1].data.push({ x: currentTime, y: data.AIN1 }); 
-        adcChart.data.datasets[2].data.push({ x: currentTime, y: data.AIN2 }); 
-        adcChart.data.datasets[3].data.push({ x: currentTime, y: data.AIN3 }); 
-        adcChart.data.datasets[4].data.push({ x: currentTime, y: data.AIN4 }); 
-        adcChart.data.datasets[5].data.push({ x: currentTime, y: data.AIN5 }); 
-        adcChart.data.datasets[6].data.push({ x: currentTime, y: data.AIN6 }); 
-        adcChart.data.datasets[7].data.push({ x: currentTime, y: data.AIN7 });
-
-        adcChart.update();
-      } else {
-        console.error("ADC Chart or Chart data is not defined");
-      }
-
-      if (gyroChart && gyroChart.data) {
-
-        gyroChart.data.labels.push(currentTime);
-        gyroChart.data.datasets[0].data.push({ x: currentTime, y: data.Rotation_x });
-        gyroChart.data.datasets[1].data.push({ x: currentTime, y: data.Rotation_y });
-        gyroChart.data.datasets[2].data.push({ x: currentTime, y: data.Rotation_z });
-
-        gyroChart.update();
-      } else {
-        console.error("Gyro Chart or Chart data is not defined");
-      }
-
-      if (accChart && accChart.data) {
-
-        accChart.data.labels.push(currentTime);
-        accChart.data.datasets[0].data.push({ x: currentTime, y: data.Acceleration_x });
-        accChart.data.datasets[1].data.push({ x: currentTime, y: data.Acceleration_y });
-        accChart.data.datasets[2].data.push({ x: currentTime, y: data.Acceleration_z });
-
-        accChart.update();
-      } else {
-        console.error("Acceleration Chart or Chart data is not defined");
-      }
-
-      const sensorDataTable = document.getElementById('sensor-data');
-      const row = document.createElement('tr');
-      
-      const readTimeCell = document.createElement('td');
-      readTimeCell.textContent = data.sensor_read_time;
-      row.appendChild(readTimeCell);
-
-      const sendTimeCell = document.createElement('td');
-      sendTimeCell.textContent = data.data_send_time;
-      row.appendChild(sendTimeCell);
-
-      const receiveTimeCell = document.createElement('td');
-      receiveTimeCell.textContent = data.data_receive_time;
-      row.appendChild(receiveTimeCell);
-
-      const adc0Cell = document.createElement('td');
-      adc0Cell.textContent = data.AIN0;
-      row.appendChild(adc0Cell);
-
-      const adc1Cell = document.createElement('td');
-      adc1Cell.textContent = data.AIN1;
-      row.appendChild(adc1Cell);
-
-      const adc2Cell = document.createElement('td');
-      adc2Cell.textContent = data.AIN2;
-      row.appendChild(adc2Cell);
-
-      const adc3Cell = document.createElement('td');
-      adc3Cell.textContent = data.AIN3;
-      row.appendChild(adc3Cell);
-
-      const adc4Cell = document.createElement('td');
-      adc4Cell.textContent = data.AIN4;
-      row.appendChild(adc4Cell);
-
-      const adc5Cell = document.createElement('td');
-      adc5Cell.textContent = data.AIN5;
-      row.appendChild(adc5Cell);
-
-      const adc6Cell = document.createElement('td');
-      adc6Cell.textContent = data.AIN6;
-      row.appendChild(adc6Cell);
-
-      const adc7Cell = document.createElement('td');
-      adc7Cell.textContent = data.AIN7;
-      row.appendChild(adc7Cell);
-
-      const accXCell = document.createElement('td');
-      accXCell.textContent = data.Acceleration_x;
-      row.appendChild(accXCell);
-
-      const accYCell = document.createElement('td');
-      accYCell.textContent = data.Acceleration_y;
-      row.appendChild(accYCell);
-
-      const accZCell = document.createElement('td');
-      accZCell.textContent = data.Acceleration_z;
-      row.appendChild(accZCell);
-
-      const rotXCell = document.createElement('td');
-      rotXCell.textContent = data.Rotation_x;
-      row.appendChild(rotXCell);
-
-      const rotYCell = document.createElement('td');
-      rotYCell.textContent = data.Rotation_y;
-      row.appendChild(rotYCell);
-
-      const rotZCell = document.createElement('td');
-      rotZCell.textContent = data.Rotation_z;
-      row.appendChild(rotZCell);
-
-      sensorDataTable.appendChild(row);
-    });
-
-    document.getElementById('toggleView').addEventListener('click', function() {
-      const tableView = document.getElementById('tableView');
-      const graphView = document.getElementById('graphView');
-      if (tableView.classList.contains('hidden')) {
-        tableView.classList.remove('hidden');
-        graphView.classList.add('hidden');
-        this.textContent = 'Switch to Graph View';
-      } else {
-        tableView.classList.add('hidden');
-        graphView.classList.remove('hidden');
-        this.textContent = 'Switch to Table View';
-      }
-    });
-  </script>
+        socket.on('new_data', (data) => {
+            const { counter, adc, acceleration, rotation } = data;
+            adcBuffer.push({ counter, values: adc });
+            accelBuffer.push({ counter, values: acceleration });
+            rotationBuffer.push({ counter, values: rotation });
+        });
+    </script>
 </body>
 </html>
