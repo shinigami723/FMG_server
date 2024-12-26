@@ -4,8 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Real-Time Data Visualization</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.1/socket.io.min.js"></script>
+    <script src="{{ url_for('static', filename='libs/chart.umd.js') }}"></script>
+    <script src="{{ url_for('static', filename='libs/socket.io.min.js') }}"></script>
+
     <style>
         body {
             margin: 0;
@@ -154,7 +155,25 @@
         const adcChart = new Chart(ctxAdc, {
             type: 'line',
             data: { labels: [], datasets: adcDatasets },
-            options: createChartOptions("Time (s)", "ADC Value")
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              animation: false,
+              plugins: {
+                legend: { display: true
+                },
+              },
+              scales: {
+                x: {
+                  title: { display: true, text: "Time (s)"}
+                },
+                y: {
+                  title: { display: true, text: "ADC Value (V)"},
+                  min: 0,
+                  max: 5
+                }
+              }
+            }
         });
 
         const accelChart = new Chart(ctxAccel, {
